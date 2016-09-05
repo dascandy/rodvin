@@ -1,0 +1,73 @@
+#ifndef PATH_H
+#define PATH_H
+
+#include <string>
+
+namespace rodvin {
+
+class path {
+public:
+  path() {}
+  path(const char* s) : str(s) {}
+  path(const string& s) : str(s) {}
+  path(const path& p) : str(p.str) {}
+  path& operator=(const path& p) {
+    str = p.str;
+    return *this;
+  }
+  ~path() {}
+  const rodvin::string& string() const { return str; }
+  path parent_path() const {
+    size_t pos = str.find("/");
+    if (pos == str.npos) {
+      return "/";
+    } else {
+      return str.substr(0, pos);
+    }
+  }
+  friend path operator/(const path& l, const path& r) {
+    path p;
+    p.str.reserve(l.str.size() + 1 + r.str.size());
+    p.str = l.str;
+    p.str += "/";
+    p.str += r.str;
+    return p;
+  }
+  path canonical() {
+    rodvin::string s = str + "/";
+    
+    size_t start = s.find("/./");
+    while (start != s.npos) {
+      s.replace(start, 3, "/");
+      start = s.find("/./");
+    }
+
+    start = s.find("//");
+    while (start != s.npos) {
+      s.replace(start, 2, "/");
+      start = s.find("//");
+    }
+
+    start = s.find("/../");
+    while (start != s.npos) {
+      size_t length = 5;
+      --start;
+      while (start != 0 && s.getByte(start) != '/') {
+        start--; length++;
+      }
+      s.replace(start, length, "/");
+      
+      start = s.find("/../"); 
+    }
+    
+    return s.substr(0, s.size() - 1);
+  }
+private:
+  rodvin::string str;
+};
+
+}
+
+#endif
+
+

@@ -1,0 +1,92 @@
+#ifndef VECTORMAP
+#define VECTORMAP
+
+#include <vector>
+#include <utility>
+
+template <typename K, typename V>
+class vectormap : private std::vector<std::pair<const K, V>> {
+public:
+  typedef typename std::vector<std::pair<const K, V>>::iterator iterator;
+  typedef typename std::vector<std::pair<const K, V>>::const_iterator const_iterator;
+  using std::vector<std::pair<const K, V>>::begin;
+  using std::vector<std::pair<const K, V>>::end;
+  using std::vector<std::pair<const K, V>>::size;
+  V &operator[](const K &key) {
+    for (std::pair<const K, V> &p : *this) {
+      if (p.first == key) return p.second;
+    }
+    this->push_back(std::pair<const K, V>(key, V()));
+    return this->back().second;
+  }
+  template <typename P>
+  void insert(const P & p) {
+    (*this)[p.first] = p.second;
+  }
+  iterator find(const K &k) {
+    auto it = this->begin();
+    while (it != this->end()) {
+      if (it->first == k) break;
+      ++it;
+    }
+    return it;
+  }
+  const_iterator find(const K &k) const {
+    auto it = this->begin();
+    while (it != this->end()) {
+      if (it->first == k) break;
+      ++it;
+    }
+    return it;
+  }
+};
+
+template <typename K, typename V>
+class sortedvectormap : private std::vector<std::pair<const K, V>> {
+public:
+  typedef typename std::vector<std::pair<const K, V>>::iterator iterator;
+  typedef typename std::vector<std::pair<const K, V>>::const_iterator const_iterator;
+  using std::vector<std::pair<const K, V>>::begin;
+  using std::vector<std::pair<const K, V>>::end;
+  using std::vector<std::pair<const K, V>>::size;
+  size_t getInsertIndex(const K &key) const {
+    size_t low = 0, high = size();
+    while (low != high + 1) {
+      if (this->buf[(low+high)/2] < key) {
+        low = (low + high) / 2;
+      } else {
+        high = (low + high) / 2;
+      }
+    }
+    return low;
+  }
+  V &operator[](const K &key) {
+    size_t index = getInsertIndex(key);
+    if (this->buf[index] != key)
+      insert(begin() + index, std::make_pair(key, V()));
+
+    return this->buf[index];
+  }
+  template <typename P>
+  void insert(const P & p) {
+    (*this)[p.first] = p.second;
+  }
+  iterator find(const K &key) {
+    size_t index = getInsertIndex(key);
+    if (this->buf[index] != key)
+      return begin() + index;
+
+    return end();
+  }
+  const_iterator find(const K &key) const {
+    size_t index = getInsertIndex(key);
+    if (this->buf[index] != key)
+      return begin() + index;
+
+    return end();
+  }
+};
+
+#endif
+
+

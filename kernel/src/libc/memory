@@ -1,0 +1,80 @@
+#ifndef MEMORY_H
+#define MEMORY_H
+
+#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+namespace std {
+
+template <typename T>
+class shared_ptr {
+public:
+  shared_ptr(T* ptr)
+  : ptr(ptr)
+  , ctr(new size_t)
+  {
+    (*ctr) = 1;
+  }
+  shared_ptr(const shared_ptr& sp)
+  : ptr(sp.ptr)
+  , ctr(sp.ctr)
+  {
+    printf("%s:%d\n", __FILE__, __LINE__);
+    (*ctr)++;
+    printf("%s:%d\n", __FILE__, __LINE__);
+  }
+  shared_ptr& operator=(const shared_ptr& sp) {
+    if (ptr == sp.ptr) 
+      return *this;
+    (*ctr)--;
+    if ((*ctr) == 0) {
+      delete ptr;
+      if ((size_t)ctr - sizeof(T) != (size_t)ptr)
+        delete ctr;
+    }
+    ptr = sp.ptr;
+    ctr = sp.ctr;
+    (*ctr)++;
+    return *this;
+  }
+  ~shared_ptr() {
+    (*ctr)--;
+    if ((*ctr) == 0) {
+      delete ptr;
+      if ((size_t)ctr - sizeof(T) != (size_t)ptr)
+        delete ctr;
+    }
+    ptr = 0;
+    ctr = 0;
+  }
+  T* operator->() const { return ptr; }
+  T* get() const { return ptr; }
+private:
+  shared_ptr(T* p, size_t* c)
+  : ptr(p)
+  , ctr(c)
+  {
+    (*ctr) = 1;
+  }
+  template <typename T2, typename... Args>
+  friend shared_ptr<T2> make_shared(Args&&...args);
+  T* ptr;
+  size_t* ctr;
+};
+
+template <typename T, typename... Args>
+shared_ptr<T> make_shared(Args&&...args) {
+  size_t minsize = (sizeof(T) < sizeof(size_t) ? sizeof(size_t) : sizeof(T));
+  char* buf = (char*)malloc(minsize + sizeof(size_t));
+  T* p = (T*)buf;
+  new (p) T(args...);
+  size_t* c = (size_t*)(buf + minsize);
+  return shared_ptr<T>(p, c);
+}
+
+}
+
+#endif
+
+

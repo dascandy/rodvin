@@ -1,0 +1,46 @@
+#ifndef FUNCTIONAL
+#define FUNCTIONAL
+
+#include <memory>
+#include <stdio.h>
+
+namespace std {
+
+template <typename T>
+class function;
+
+template <typename R, typename... Args>
+class function<R(Args...)> {
+public:
+  class wrapI {
+  public:
+    static constexpr const char* name = "wrapI";
+    virtual ~wrapI() {}
+    virtual R operator()(Args...) const = 0;
+  };
+  template <typename T>
+  class wrap : public wrapI {
+  public:
+    wrap(T t) : t(t) {}
+    R operator()(Args... args) const {
+      return t(args...); 
+    }
+    T t;
+  };
+  template <typename T>
+  function(T t)
+  : _impl(new wrap<T>(t))
+  {
+  }
+  R operator()(Args... args) const {
+    return _impl->operator()(args...);
+  }
+private:
+  std::shared_ptr<wrapI> _impl;
+};
+
+}
+
+#endif
+
+

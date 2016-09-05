@@ -1,0 +1,267 @@
+#ifndef STRING_H
+#define STRING_H
+
+#include <string.h>
+#include <stdint.h>
+#include <algorithm>
+#include <stdio.h>
+
+namespace rodvin {
+
+class string {
+public:
+  struct const_iterator;
+  string() {
+    capacity_ = 0;
+    size_ = 0;
+    storage = NULL;
+  }
+  string(const string& str) {
+    capacity_ = size_ = str.size_;
+    storage = new char[size_+1];
+    strcpy(storage, str.storage);
+  }
+  string(const char* data) {
+    capacity_ = size_ = strlen(data);
+    storage = new char[size_+1];
+    strcpy(storage, data);
+  }
+  string(const_iterator& b, const_iterator& e) {
+    capacity_ = size_ = e.offset - b.offset;
+    storage = new char[size_+1];
+    memcpy(storage, b.str->storage + b.offset, size_);
+    storage[size_] = 0;
+  }
+  string(const char* begin, const char* end) {
+    capacity_ = size_ = end - begin;
+    storage = new char[size_+1];
+    memcpy(storage, begin, size_);
+    storage[size_] = 0;
+  }
+  string(uint16_t *data) {
+    capacity_ = 8;
+    size_ = 0;
+    storage = new char[capacity_+1];
+    storage[size_] = 0;
+    while (*data) {
+      push_back(getUtf16Char(data));
+    }
+  }
+  string(uint32_t *data) {
+    capacity_ = 8;
+    size_ = 0;
+    storage = new char[capacity_+1];
+    storage[size_] = 0;
+    while (*data) {
+      push_back(*data++);
+    }
+  }
+  string& operator=(const string& str) {
+    capacity_ = size_ = str.size_;
+    delete [] storage;
+    storage = new char[size_+1];
+    strcpy(storage, str.storage);
+    return *this;
+  }
+  string& operator+=(const string& str) {
+    reserve(size_ + str.size());
+    strcpy(storage + size_, str.data());
+    size_ += str.size();
+    return *this;
+  }
+  string operator+(const string& str) {
+    string c = *this;
+    c += str;
+    return c;
+  }
+  ~string() {
+    delete [] storage;
+  }
+  string substr(size_t start, size_t n = npos) const {
+    size_t bytesToCopy = n == npos ? size_ - start : n;
+    string rv;
+    rv.resize(bytesToCopy);
+    memcpy(rv.storage, storage + start, bytesToCopy);
+    rv.storage[bytesToCopy] = 0;
+    return rv;
+  }
+  string &replace(size_t start, size_t length, const string& replaceant) {
+    int delta = replaceant.size() - length;
+    size_t newSize = size_ + delta;
+    if (newSize > capacity_) reserve(newSize);
+    memmove(storage + start + replaceant.size(), storage + start + length, size_ - length - start);
+    memcpy(storage + start, replaceant.data(), replaceant.size());
+    size_ += delta;
+    storage[size_] = 0;
+    return *this;
+  }
+  friend bool operator==(const string& a, const string& b) {
+    if (a.size_ != b.size_) return false;
+    size_t n = 0;
+    while (a.storage[n] == b.storage[n] && n < b.size_) n++;
+    return n == b.size_;
+  }
+  bool operator!=(const string& s) const {
+    return !(*this == s);
+  }
+  char* data() { return storage; }
+  const char* data() const { return storage; }
+  const char* c_str() const { return storage; }
+  size_t size() const { return size_; }
+  size_t capacity() const { return capacity_; }
+  size_t length() const {
+    size_t len = 0;
+    for (size_t offset = 0; offset < size_; offset++) {
+      if ((storage[offset] & 0xC0) != 0x80)
+        len++;
+    }
+    return len;
+  }
+  void reserve(size_t size) {
+    if (size < capacity_)
+      return;
+    char *buf = new char[size+1];
+    memcpy(buf, storage, capacity_+1);
+    delete [] storage;
+    capacity_ = size;
+    storage = buf;
+  }
+  void resize(size_t size) {
+    if (size > capacity_)
+      reserve(size);
+    while (size_ < size)
+      storage[size_++] = 0;
+    size_ = size;
+    storage[size_] = 0;
+  }
+  void clear() {
+    resize(0);
+  }
+  void pop_back() {
+    while ((storage[size_-1] & 0xC0) == 0x80) size_--;
+    size_--;
+  }
+  static const size_t npos = (size_t)-1;
+  size_t find(const char *c, size_t pos = 0) const {
+    char* v = strstr(storage+pos, c);
+    if (!v) return npos;
+    return (v - storage);
+  }
+  size_t find(const string& s, size_t pos = 0) const {
+    return find(s.c_str(), pos);
+  }
+  size_t find(uint32_t ch, size_t pos = 0) const {
+    uint32_t str[2] = { ch, 0 };
+    return find(string(str), pos);
+  }
+  size_t find_first_not_of(const string& s) const {
+    for (const_iterator it = begin(); it != end(); ++it) {
+      if (s.find(*it) == npos)
+        return it.offset;
+    }
+    return npos;
+  }
+  uint8_t getByte(size_t offset) const {
+    return storage[offset];
+  }
+  struct const_iterator {
+    const_iterator(const string* str, size_t offset)
+    : str(str)
+    , offset(offset)
+    {}
+    const_iterator& operator++() {
+      offset++;
+      while ((str->getByte(offset) & 0xC0) == 0x80) offset++;
+      return *this;
+    }
+    const_iterator& operator--() {
+      offset--;
+      while ((str->getByte(offset) & 0xC0) == 0x80) offset--;
+      return *this;
+    }
+    uint32_t operator*() {
+      uint32_t v = str->getByte(offset);
+      if (v < 0x80) {
+        return v;
+      } else if (v < 0xE0) {
+        return ((v & 0x1F) << 6) |
+               ((str->getByte(offset+1) & 0x3F) << 0);
+      } else if (v < 0xF0) {
+        return ((v & 0x0F) << 12) |
+               ((str->getByte(offset+1) & 0x3F) << 6) |
+               ((str->getByte(offset+2) & 0x3F) << 0);
+      } else {
+        return ((v & 0x07) << 18) |
+               ((str->getByte(offset+1) & 0x3F) << 12) |
+               ((str->getByte(offset+2) & 0x3F) << 6) |
+               ((str->getByte(offset+3) & 0x3F) << 0);
+      }
+    }
+    bool operator==(const const_iterator& it) const {
+      return (str == it.str &&
+              offset == it.offset);
+    }
+    bool operator!=(const const_iterator& it) const {
+      return !(*this == it);
+    }
+    const string* str;
+    size_t offset;
+  };
+  const_iterator begin() const {
+    return const_iterator(this, 0);
+  }
+  const_iterator end() const {
+    return const_iterator(this, size_);
+  }
+  void push_back(uint32_t wchar) {
+    reserve(size_ + 8);
+
+    if (wchar <= 0x7F) {
+      storage[size_++] = (char)wchar;
+    } else if (wchar <= 0x7FF) {
+      storage[size_++] = (char)(((wchar >>  6) & 0x1F) | 0xC0);
+      storage[size_++] = (char)(((wchar >>  0) & 0x3F) | 0x80);
+    } else if (wchar <= 0xFFFF) {
+      storage[size_++] = (char)(((wchar >> 12) & 0x0F) | 0xE0);
+      storage[size_++] = (char)(((wchar >>  6) & 0x3F) | 0x80);
+      storage[size_++] = (char)(((wchar >>  0) & 0x3F) | 0x80);
+    } else {
+      storage[size_++] = (char)(((wchar >> 18) & 0x07) | 0xF0);
+      storage[size_++] = (char)(((wchar >> 12) & 0x3F) | 0x80);
+      storage[size_++] = (char)(((wchar >>  6) & 0x3F) | 0x80);
+      storage[size_++] = (char)(((wchar >>  0) & 0x3F) | 0x80);
+    }
+    storage[size_] = 0;
+  }
+private:
+  uint32_t getUtf16Char(uint16_t *&ptr) {
+    if (*ptr >= 0xD800 && *ptr <= 0xDBFF) {
+      uint32_t val = (*ptr << 10) & 0xFFC00;
+      ptr++;
+      if (*ptr >= 0xDC00 && *ptr <= 0xDFFF) {
+        val |= (*ptr & 0x3FF);
+        val += 0x10000;
+        ptr++;
+        return val;
+      } else {
+        return 0xFFFD;
+      }
+    } else if (*ptr >= 0xDC00 && *ptr <= 0xDFFF) {
+      ptr++;
+      return 0xFFFD;
+    } else {
+      uint16_t val = *ptr;
+      ptr++;
+      return val;
+    }
+  }
+  char *storage;
+  size_t size_;
+  size_t capacity_;
+};
+
+}
+
+#endif
+
+

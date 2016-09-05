@@ -1,0 +1,67 @@
+#ifndef QUEUE
+#define QUEUE
+
+#include <deque>
+#include <utility>
+
+namespace std {
+
+template <typename T, typename Container = deque<T> >
+class queue {
+public:
+  typedef T value_type;
+  typedef Container container_type;
+  typedef T& reference;
+  typedef const T& const_reference;
+  typedef typename Container::size_type size_type;
+
+  explicit queue (const container_type& ctnr)
+  : c(ctnr)
+  {}
+  explicit queue()
+  {
+  }
+  explicit queue (container_type&& ctnr)
+  : c(ctnr)
+  {}
+
+  bool empty() const {
+    return c.empty();
+  }
+  size_type size() const {
+    return c.size();
+  }
+  reference front() {
+    return c.front();
+  }
+  const_reference front() const {
+    return c.front();
+  }
+  reference back() {
+    return c.back();
+  }
+  const_reference back() const {
+    return c.back();
+  }
+  void push(const value_type &v) {
+    c.push_back(v);
+  }
+  void push(value_type&& v) {
+    c.push_back(std::move(v));
+  }
+  template <class... Args> 
+  void emplace (Args&&... args) {
+    c.emplace_back(std::forward(args...));
+  }
+  void pop() {
+    c.pop_front();
+  }
+private:
+  Container c;
+};
+
+}
+
+#endif
+
+

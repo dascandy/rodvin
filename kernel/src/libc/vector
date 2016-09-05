@@ -1,0 +1,132 @@
+#ifndef VECTOR
+#define VECTOR
+
+#include <stdlib.h>
+#include <new>
+
+namespace std {
+  template<typename T>
+  class vector {
+  protected:
+    T *buf;
+    size_t size_, capacity_;
+  public:
+    vector()
+    : buf(NULL)
+    , size_(0)
+    , capacity_(0)
+    {}
+    ~vector()
+    {
+      for (size_t n = 0; n < size_; n++) {
+        buf[n].~T();
+      }
+      if (buf) free(buf);
+    }
+    vector(const vector& v)
+    : buf(NULL)
+    , size_(0)
+    , capacity_(0)
+    {
+      reserve(v.size());
+      for (size_t n = 0; n < v.size(); n++) {
+        push_back(v[n]);
+      }
+    }
+    vector& operator=(const vector& v) {
+      while (size() > v.size())
+        pop_back();
+
+      if (capacity_ < v.size()) {
+        // if capacity insufficient, deallocate and replace fully
+        clear();
+        reserve(v.size());
+      }
+
+      size_t n;
+      for (n = 0; n < size() < v.size() ? size() : v.size(); n++) {
+        (*this)[n] = v[n];
+      }
+      for (; n < v.size(); n++) {
+        push_back(v[n]);
+      }
+    }
+    bool empty() const { return size_ == 0; }
+    size_t size() const { return size_; }
+    size_t capacity() const { return capacity_; }
+    void reserve(size_t newCapacity) {
+      if (newCapacity < capacity_) return;
+      T* newbuf = static_cast<T*>(malloc(newCapacity * sizeof(T)));
+      // TODO: exception safety
+      for (size_t n = 0; n < size_; n++) {
+        new(&newbuf[n])T(buf[n]);
+      }
+      // point of no return
+      for (size_t n = 0; n < size_; n++) {
+        buf[n].~T();
+      }
+      if (buf) free(buf);
+      buf = newbuf;
+      capacity_ = newCapacity;
+    }
+    void resize(size_t newSize) {
+      if (newSize < size_) {
+        while (newSize < size_)
+          pop_back();
+        return;
+      }
+      if (newSize < capacity_) reserve(newSize);
+      for (; size_ < newSize; ++size_) {
+        new(&buf[size_]) T();
+      }
+    }
+    void clear() {
+      while (!empty())
+        pop_back();
+    }
+    void push_back(T elem) {
+      if (capacity_ < 8) reserve(8);
+      if (size_ + 1 > capacity_) reserve(capacity_*2);
+      new(&buf[size_++])T(elem);
+    }
+    template <typename... Args>
+    void emplace_back(Args... args) {
+      if (capacity_ < 8) reserve(8);
+      if (size_ + 1 > capacity_) reserve(capacity_*2);
+      new(&buf[size_++])T(args...);
+    }
+    void pop_back() {
+      buf[--size_].~T();
+    }
+    T& front() {
+      return buf[0];
+    }
+    T& back() {
+      return buf[size_-1];
+    }
+    T* begin() {
+      return buf;
+    }
+    T* end() {
+      return buf + size_;
+    }
+    const T* begin() const {
+      return buf;
+    }
+    const T* end() const {
+      return buf + size_;
+    }
+    T& operator[](size_t n) {
+      return buf[n];
+    }
+    const T& operator[](size_t n) const {
+      return buf[n];
+    }
+    typedef T* iterator;
+    typedef const T* const_iterator;
+  };
+};
+
+#endif
+
+

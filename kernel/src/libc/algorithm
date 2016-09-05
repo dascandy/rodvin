@@ -1,0 +1,27 @@
+#ifndef __ALGORITHM
+#define __ALGORITHM
+
+namespace std {
+  template <typename T, typename U>
+  auto min(T a, U b) -> decltype(a+b) {
+    if (a < b) 
+      return a;
+    return b;
+  }
+  template <typename T, typename U>
+  auto max(T a, U b) -> decltype(a+b) {
+    if (a < b) 
+      return b;
+    return a;
+  }
+  template <typename T>
+  T abs(T a) {
+    if (a < 0)
+      return -a;
+    return a;
+  }
+}
+
+#endif
+
+
