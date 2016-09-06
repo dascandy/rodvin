@@ -4,7 +4,6 @@
 #include "device.h"
 #include "vfs.h"
 #include "interrupts.h"
-#include "future.h"
 
 Shell::Shell() 
 : con(1280, 720)
@@ -19,13 +18,10 @@ Shell::Shell()
   con.printtext("\nu@localhost:");
   con.printtext(currentPath.string());
   con.printtext("$ ");
-  async([this]{
-    this->run();
-  });
 }
 
 void Shell::run() {
-  getchar().then([this](const future<uint32_t>&f){ this->handleChar(f.get()); run(); });
+  handleChar(getchar());
 }
 
 void Shell::handleChar(uint32_t c)

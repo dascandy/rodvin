@@ -1,2 +1,0 @@
-- get booting on multiboot with grub in qemu
-- 

@@ -5,39 +5,17 @@
 #include "Scancodes.h"
 #include "Qwerty.h"
 #include <string.h>
-#include "future.h"
 #include <deque>
 
-template <typename T>
-struct PendingBuffer {
-  Buffer<T> buffer;
-  std::deque<promise<T>> futures;
-  future<T> get() {
-    if (buffer.empty()) {
-      futures.emplace_back();
-      return futures.back().get_future();
-    } else {
-      return make_ready_future<T>(buffer.pop());
-    }
-  }
-  void add(T value) {
-    if (futures.empty()) {
-      buffer.push(value);
-    } else {
-      promise<T> &p = futures.front();
-      p.set_value(value);
-      futures.pop_front();
-    }
-  }
-};
-
-static PendingBuffer<uint32_t>& inputs() {
-  static PendingBuffer<uint32_t> in;
-  return in;
+static std::deque<uint8_t>& inputs() {
+  std::deque<uint8_t> inputs;
+  return inputs;
 }
 
-future<uint32_t> getchar() {
-  return inputs().get();
+uint32_t getchar() {
+  uint32_t front = inputs().front();
+  inputs().pop_front();
+  return front;
 }
 
 static std::vector<Keyboard*> keyboards;
@@ -70,7 +48,6 @@ static uint32_t toupper(uint32_t ch) {
 void Keyboard::onInput(ScanCode sc) {
   bool isRelease = (sc & ScanCodes::KeyReleased) != 0;
   keys[sc & 0x7FFF] = !isRelease;
-  printf("got %04X\n", sc);
   if (isRelease) {
     return;
   }
@@ -82,8 +59,7 @@ void Keyboard::onInput(ScanCode sc) {
   if (upcase) c = toupper(c);
   if (c)
   {
-    printf("got input %04X\n", c);
-    inputs().add(c);
+    inputs().push_back(c);
   }
 }
 
