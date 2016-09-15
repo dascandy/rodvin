@@ -1,3 +1,4 @@
 .bob.cache
 out/
-
+.out.*
+disk.img
