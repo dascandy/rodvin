@@ -8,7 +8,7 @@
 #include <deque>
 
 static std::deque<uint8_t>& inputs() {
-  std::deque<uint8_t> inputs;
+  static std::deque<uint8_t> inputs;
   return inputs;
 }
 

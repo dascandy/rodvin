@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include "pci.h"
 #include "platform.h"
-#include "future.h"
 
 #define VIRTUAL_ADDRESS 0xFFFFFF00FFFFF000
 
@@ -46,10 +45,10 @@ Xhci::Xhci(pcidevice dev)
   uint64_t ptr = ((uint64_t)pciread32(dev, 0x14) << 32) | pciread32(dev, 0x10);
   printf("Found xhci device! %p\n", ptr);
   platform_map((void*)VIRTUAL_ADDRESS, ptr, DeviceRegisters);
+/*
   volatile capregs* cr = (capregs*)(VIRTUAL_ADDRESS);
   volatile opregs* opr = (opregs*)(VIRTUAL_ADDRESS + cr->caplength);
   volatile portregs* pr = (portregs*)(VIRTUAL_ADDRESS + 0x400);
-/*
 
   volatile rtregs* rr = (rtregs*)(VIRTUAL_ADDRESS + cr->rtsoff);
   volatile uint32_t* doorbell = (uint32_t*)(VIRTUAL_ADDRESS + cr->dboff);

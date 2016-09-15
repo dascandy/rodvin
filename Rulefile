@@ -4,12 +4,12 @@ ASSEMBLER-rpi=arm-none-eabi-as
 LINKER-rpi=arm-none-eabi-ld
 OBJCOPY-rpi=arm-none-eabi-objcopy
 LIBGCC-rpi=/home/pebi/cross/lib/gcc/arm-none-eabi/6.2.0/
-CPPCOMPILER-x8664=/home/pebi/cross/x8664/bin/x86_64-rodvin-g++
-CCOMPILER-x8664=/home/pebi/cross/x8664/bin/x86_64-rodvin-gcc
-ASSEMBLER-x8664=/home/pebi/cross/x8664/bin/x86_64-rodvin-as
-LINKER-x8664=/home/pebi/cross/x8664/bin/x86_64-rodvin-ld
-OBJCOPY-x8664=/home/pebi/cross/x8664/bin/x86_64-rodvin-objcopy
-LIBGCC-x8664=/home/pebi/cross/lib/gcc/x86_64-rodvin/4.9.2/
+CPPCOMPILER-x8664=g++
+CCOMPILER-x8664=gcc
+ASSEMBLER-x8664=as
+LINKER-x8664=ld
+OBJCOPY-x8664=objcopy
+LIBGCC-x8664=/usr/lib/gcc/x86_64-linux-gnu/5
 
 CCFLAGS-rpi=-mfloat-abi=hard -mfpu=vfp -mcpu=arm1176jzf-s -Wall -Wextra
 CCFLAGS-x8664=-ffreestanding -mcmodel=large -mno-red-zone -Wall -Wextra
@@ -17,8 +17,8 @@ ASFLAGS-rpi=-meabi=5
 ASFLAGS-x8664=
 
 # R-Pi CSUD only
-src/(.*)\.c => out/rpi/\1.o
-  $(CCOMPILER-rpi) $(CCFLAGS-rpi) -c $^ -Isrc/rpi/csud/include -o $@ -std=gnu99 -ffreestanding -O2 -fshort-wchar -DTYPE_LOWLEVEL -DDEBUG -DTARGET_RPI
+kernel/src/rpi/csud/(.*)\.c => out/rpi/kernel/csud/\1.o
+  $(CCOMPILER-rpi) $(CCFLAGS-rpi) -c $^ -Ikernel/src/rpi/csud -o $@ -std=gnu99 -ffreestanding -O2 -fshort-wchar -DTYPE_LOWLEVEL -DDEBUG -DTARGET_RPI -Wno-format -Wno-strict-aliasing
 
 each target: rpi x8664
 kernel/src/$(target)/(.*)\.[sS] => out/$(target)/kernel/\1.o
@@ -66,8 +66,7 @@ out/boot/bootsect.bin => out/boot/bootldr.bin
 out/boot/bootsect.bin => out/boot/bs.bin
   dd if=out/boot/bootsect.bin bs=512 count=1 of=out/boot/bs.bin
 
-# out/.*/kernel\..* out/boot/bootldr.bin out/boot/bs.bin => disk.img
-out/rpi/kernel\..* => disk.img
+out/.*/kernel\..* out/boot/bootldr.bin out/boot/bs.bin => disk.img
   ./make_disk.sh
 
 tools/(.*).c => out/obj/tools/\1.o

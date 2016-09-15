@@ -21,63 +21,66 @@ setup:
   mov eax, 80000000h
   cpuid
   cmp eax, 80000000h
-  jle pm_start
+  jle nolm ;pm_start
   mov eax, 80000001h
   cpuid
   test edx, LM
   jnz lm_start
 
-pm_start:
-  push 1000h
-  pop es
-  xor bx, bx
-  mov bp, kernel_name_32
-  call ReadFile
-  mov esi, eax
+nolm:
+  jmp nolm
 
-  call load_memmap
-
-  cli
-  ; build paging tables
-  xor di, di
-  mov es, di
-  mov di, 1000h
-  mov [es:2FF8h], dword 02001h
-  mov [es:2FE0h], dword 03001h
-  mov eax, 02FE0h
-
-  lgdt [gdt32_load]
-  mov cr3, eax
-  mov eax, cr4
-  or eax, PAE | PSE
-  mov cr4, eax
-  mov eax, PG | PE
-  mov cr0, eax
-  jmp 08h:pm_entry ; jump required to reload CS & to actually actuate the switch
-
-; it is a gdt... no matter why
-gdt32_load:
-  dw 1Fh
-gdt32:
-  dq gdt32
-  dd 0FFFFh,000CF9800h
-  dd 0FFFFh,000CFF800h
-  dd 0FFFFh,000CF9200h
-
-BITS 32
-
-pm_entry:
-  mov ax, 18h
-  mov ss, ax
-  mov es, ax
-  mov ds, ax
-  mov esp, 07b00h
-  mov ebx, 010000h
-  push ebx
-  call loader32
-pm_entry_ret:
-  jmp pm_entry_ret
-
+;pm_start:
+;  push 1000h
+;  pop es
+;  xor bx, bx
+;  mov bp, kernel_name_32
+;  call ReadFile
+;  mov esi, eax
+;
+;  call load_memmap
+;
+;  cli
+;  ; build paging tables
+;  xor di, di
+;  mov es, di
+;  mov di, 1000h
+;  mov [es:2FF8h], dword 02001h
+;  mov [es:2FE0h], dword 03001h
+;  mov eax, 02FE0h
+;
+;  lgdt [gdt32_load]
+;  mov cr3, eax
+;  mov eax, cr4
+;  or eax, PAE | PSE
+;  mov cr4, eax
+;  mov eax, PG | PE
+;  mov cr0, eax
+;  jmp 08h:pm_entry ; jump required to reload CS & to actually actuate the switch
+;
+;; it is a gdt... no matter why
+;gdt32_load:
+;  dw 1Fh
+;gdt32:
+;  dq gdt32
+;  dd 0FFFFh,000CF9800h
+;  dd 0FFFFh,000CFF800h
+;  dd 0FFFFh,000CF9200h
+;
+;BITS 32
+;
+;pm_entry:
+;  mov ax, 18h
+;  mov ss, ax
+;  mov es, ax
+;  mov ds, ax
+;  mov esp, 07b00h
+;  mov ebx, 010000h
+;  push ebx
+;  call loader32
+;pm_entry_ret:
+;  jmp pm_entry_ret
+;
 BITS 16
 lm_start:
   push 1000h
