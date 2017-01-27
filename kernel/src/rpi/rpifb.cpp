@@ -12,7 +12,6 @@
 
 int RpiFramebuffer::modeset_rv;
 
-
 void RpiFramebuffer::mode_cb(uint32_t msg)
 {
   modeset_rv = msg;

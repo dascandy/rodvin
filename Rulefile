@@ -12,7 +12,7 @@ OBJCOPY-x8664=objcopy
 LIBGCC-x8664=/usr/lib/gcc/x86_64-linux-gnu/5
 
 CCFLAGS-rpi=-mfloat-abi=hard -mfpu=vfp -mcpu=arm1176jzf-s -Wall -Wextra
-CCFLAGS-x8664=-ffreestanding -mcmodel=large -mno-red-zone -Wall -Wextra
+CCFLAGS-x8664=-ffreestanding -mcmodel=large -mno-red-zone -Wall -Wextra -fno-pic
 ASFLAGS-rpi=-meabi=5
 ASFLAGS-x8664=
 
